@@ -178,7 +178,7 @@ After you run some predictions, you can view analytics on the dashboard to explo
 
 Please do not file GitHub issues or post on our public forum for security vulnerabilities, as they are public!
 
-Gloo takes security issues very seriously. If you have any concerns about Infisical or believe you have uncovered a vulnerability, please get in touch via the e-mail address contact@gloo.chat. In the message, try to provide a description of the issue and ideally a way of reproducing it. The security team will get back to you as soon as possible.
+Gloo takes security issues very seriously. If you have any concerns about Gloo or believe you have uncovered a vulnerability, please get in touch via the e-mail address contact@gloo.chat. In the message, try to provide a description of the issue and ideally a way of reproducing it. The security team will get back to you as soon as possible.
 
 Note that this security address should be used only for undisclosed vulnerabilities. Please report any security problems to us before disclosing it publicly.
 
