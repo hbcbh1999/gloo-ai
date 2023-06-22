@@ -1,0 +1,43 @@
+{
+  "folders": [
+    {
+      "path": "."
+    },
+    {
+      "path": "../fern"
+    },
+    {
+      "path": "../typescript"
+    },
+    {
+      "path": "../supabase"
+    }
+  ],
+  "settings": {
+    "mypy.enabled": false,
+    "python.linting.mypyEnabled": true,
+    "python.linting.enabled": true,
+    "editor.formatOnSave": true,
+    "jest.disabledWorkspaceFolders": [
+      "analytics",
+      "gloo-common",
+      "ml-releases",
+      "fern",
+      "build",
+      "typescript",
+      "training",
+      "supabase"
+    ],
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "typescript.tsdk": "typescript/node_modules/typescript/lib"
+  },
+  "extensions": {
+    "recommendations": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
+  }
+}

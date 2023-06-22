@@ -1,0 +1,825 @@
+openapi: 3.0.1
+info:
+  title: Gloo
+  version: ''
+paths:
+  /classifiers/{classifier_id}/classification:
+    post:
+      operationId: classifiers_classify
+      tags:
+        - Classifiers
+      parameters:
+        - name: classifier_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassificationResponse'
+        '400':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageBody'
+        '401':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageBody'
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageBody'
+      security: &ref_0
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassificationRequest'
+  /v1/classification/{classifier_id}/predict:
+    post:
+      operationId: v1_classification_predict
+      tags:
+        - V1Classification
+      parameters:
+        - name: classifier_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/v1PredictionResponse'
+      security: *ref_0
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/v1PredictionRequest'
+  /v1/classification/{classifier_id}/internal/predict:
+    post:
+      operationId: v1_classification_predict_internal
+      tags:
+        - V1Classification
+      parameters:
+        - name: classifier_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/v1InternalPredictResponse'
+      security: *ref_0
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/v1InternalPredictRequest'
+  /v1/classification/{classifier_id}/feedback:
+    post:
+      operationId: v1_classification_feedback
+      tags:
+        - V1Classification
+      parameters:
+        - name: classifier_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      security: *ref_0
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/v1ClassificationFeedbackRequest'
+  /v1/classification/{classifier_id}/internal/test_data:
+    post:
+      operationId: v1_classification_generate_text_internal
+      tags:
+        - V1Classification
+      parameters:
+        - name: classifier_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/v1InternalGenerateTextResponse'
+      security: *ref_0
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/v1InternalGenerateTextRequest'
+components:
+  schemas:
+    CreateClassifierRequest:
+      title: CreateClassifierRequest
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+    ClassifierResponse:
+      title: ClassifierResponse
+      type: object
+      properties:
+        classifier_id:
+          type: string
+        name:
+          type: string
+      required:
+        - classifier_id
+        - name
+    ClassificationRequest:
+      title: ClassificationRequest
+      oneOf:
+        - type: object
+          allOf:
+            - type: object
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - text
+            - $ref: '#/components/schemas/TextInput'
+          required:
+            - type
+        - type: object
+          allOf:
+            - type: object
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - thread
+            - $ref: '#/components/schemas/ThreadInput'
+          required:
+            - type
+      properties:
+        enable_low_latency:
+          type: boolean
+          nullable: true
+        language_hint:
+          type: string
+          nullable: true
+    TextInput:
+      title: TextInput
+      type: object
+      properties:
+        text:
+          type: string
+      required:
+        - text
+    ThreadInput:
+      title: ThreadInput
+      type: object
+      properties:
+        topic:
+          type: string
+          nullable: true
+        summary:
+          type: string
+          nullable: true
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+      required:
+        - messages
+    MessageType:
+      title: MessageType
+      type: string
+      enum:
+        - USER
+        - AGENT
+    Message:
+      title: Message
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/MessageType'
+        text:
+          type: string
+      required:
+        - type
+        - text
+    ClassificationResponse:
+      title: ClassificationResponse
+      type: object
+      properties:
+        request_token:
+          type: string
+        classes:
+          type: array
+          items:
+            type: string
+      required:
+        - request_token
+        - classes
+    ClassificationFeedbackRequest:
+      title: ClassificationFeedbackRequest
+      type: object
+      properties:
+        request_token:
+          type: string
+        correctness_status:
+          $ref: '#/components/schemas/CorrectnessStatus'
+          nullable: true
+        expected_classes:
+          type: array
+          items:
+            type: string
+          nullable: true
+      required:
+        - request_token
+    CorrectnessStatus:
+      title: CorrectnessStatus
+      type: string
+      enum:
+        - ALL
+        - SOME
+        - NONE
+        - SKIP
+    MessageBody:
+      title: MessageBody
+      type: object
+      properties:
+        message:
+          type: string
+          nullable: true
+    v1PredictorType:
+      title: v1PredictorType
+      type: string
+      enum:
+        - FT
+        - LLM
+    v1FailureMode:
+      title: v1FailureMode
+      type: string
+      enum:
+        - IGNORE
+        - THROW
+    v1InternalGenerateTextRequest:
+      title: v1InternalGenerateTextRequest
+      type: object
+      properties:
+        llm_target:
+          type: string
+        num_samples:
+          type: integer
+        prompt:
+          type: string
+      required:
+        - llm_target
+        - num_samples
+        - prompt
+    v1InternalGenerateTextResponse:
+      title: v1InternalGenerateTextResponse
+      type: object
+      properties:
+        samples:
+          type: array
+          items:
+            type: string
+      required:
+        - samples
+    v1InternalPredictInput:
+      title: v1InternalPredictInput
+      oneOf:
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - text
+            value:
+              type: string
+          required:
+            - type
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - input_id
+            value:
+              type: string
+          required:
+            - type
+    v1LLMConfig:
+      title: v1LLMConfig
+      type: object
+      properties:
+        model_name:
+          type: string
+      required:
+        - model_name
+    v1NormalizerOverride:
+      title: v1NormalizerOverride
+      type: object
+      properties:
+        failure_mode:
+          $ref: '#/components/schemas/v1FailureMode'
+        llm_config:
+          $ref: '#/components/schemas/v1LLMConfig'
+        prompt:
+          type: string
+      required:
+        - failure_mode
+        - llm_config
+        - prompt
+    v1Normalizer:
+      title: v1Normalizer
+      oneOf:
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - id
+            value:
+              type: string
+          required:
+            - type
+        - type: object
+          allOf:
+            - type: object
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - override
+            - $ref: '#/components/schemas/v1NormalizerOverride'
+          required:
+            - type
+    v1KlassSelection:
+      title: v1KlassSelection
+      type: object
+      properties:
+        available:
+          type: array
+          items:
+            $ref: '#/components/schemas/v1Klass'
+        supressed:
+          type: array
+          items:
+            type: string
+      required:
+        - available
+        - supressed
+    v1TraditionalPredictorOptions:
+      title: v1TraditionalPredictorOptions
+      type: object
+      properties:
+        endpoint:
+          type: string
+        failure_mode:
+          $ref: '#/components/schemas/v1FailureMode'
+      required:
+        - endpoint
+        - failure_mode
+    v1TraditionalPredictorOverride:
+      title: v1TraditionalPredictorOverride
+      type: object
+      properties:
+        options:
+          $ref: '#/components/schemas/v1TraditionalPredictorOptions'
+        klasses:
+          $ref: '#/components/schemas/v1KlassSelection'
+      required:
+        - options
+        - klasses
+    v1TraditionalPredictor:
+      title: v1TraditionalPredictor
+      oneOf:
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - id
+            value:
+              type: string
+          required:
+            - type
+        - type: object
+          allOf:
+            - type: object
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - override
+            - $ref: '#/components/schemas/v1TraditionalPredictorOverride'
+          required:
+            - type
+    v1LLMPredictorOptions:
+      title: v1LLMPredictorOptions
+      type: object
+      properties:
+        failure_mode:
+          $ref: '#/components/schemas/v1FailureMode'
+        llm_config:
+          $ref: '#/components/schemas/v1LLMConfig'
+        input_description:
+          type: string
+        objective:
+          type: string
+        skip_prior_available_klasses:
+          type: boolean
+        add_prior_selected_klasses:
+          type: boolean
+      required:
+        - failure_mode
+        - llm_config
+        - input_description
+        - objective
+        - skip_prior_available_klasses
+        - add_prior_selected_klasses
+    v1LLMPredictorOverride:
+      title: v1LLMPredictorOverride
+      type: object
+      properties:
+        options:
+          $ref: '#/components/schemas/v1LLMPredictorOptions'
+        klasses:
+          $ref: '#/components/schemas/v1KlassSelection'
+      required:
+        - options
+        - klasses
+    v1LLMPredictor:
+      title: v1LLMPredictor
+      oneOf:
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - id
+            value:
+              type: string
+          required:
+            - type
+        - type: object
+          allOf:
+            - type: object
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - override
+            - $ref: '#/components/schemas/v1LLMPredictorOverride'
+          required:
+            - type
+    v1Klass:
+      title: v1Klass
+      type: object
+      properties:
+        id:
+          type: string
+        version:
+          type: integer
+      required:
+        - id
+        - version
+    v1KlassDetails:
+      title: v1KlassDetails
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      required:
+        - name
+        - description
+      allOf:
+        - $ref: '#/components/schemas/v1Klass'
+    v1ConfigurationOverride:
+      title: v1ConfigurationOverride
+      type: object
+      properties:
+        normalizer:
+          $ref: '#/components/schemas/v1Normalizer'
+          nullable: true
+        TraditionalPredictor:
+          $ref: '#/components/schemas/v1TraditionalPredictor'
+          nullable: true
+        llmPredictor:
+          $ref: '#/components/schemas/v1LLMPredictor'
+          nullable: true
+        klasses:
+          type: array
+          items:
+            $ref: '#/components/schemas/v1KlassDetails'
+      required:
+        - klasses
+    v1InternalPredictRequest:
+      title: v1InternalPredictRequest
+      type: object
+      properties:
+        input:
+          $ref: '#/components/schemas/v1InternalPredictInput'
+        llm_target:
+          type: string
+          nullable: true
+        configuration:
+          $ref: '#/components/schemas/v1Configuration'
+          nullable: true
+        override:
+          $ref: '#/components/schemas/v1ConfigurationOverride'
+          nullable: true
+      required:
+        - input
+    v1PredictorKlassDetails:
+      title: v1PredictorKlassDetails
+      type: object
+      properties:
+        klass_id:
+          type: string
+        klass_version:
+          type: integer
+        klass_name:
+          type: string
+        klass_description:
+          type: string
+        selected:
+          type: boolean
+        confidence:
+          type: number
+          format: double
+          description: The confidence of the prediction (0 - 1).
+      required:
+        - klass_id
+        - klass_version
+        - klass_name
+        - klass_description
+        - selected
+        - confidence
+    v1Status:
+      title: v1Status
+      type: string
+      enum:
+        - PASS
+        - FAIL
+        - FAIL_PARENT
+    v1PredictorDetails:
+      title: v1PredictorDetails
+      type: object
+      properties:
+        predictor_id:
+          type: string
+        predictor_type:
+          $ref: '#/components/schemas/v1PredictorType'
+        status:
+          $ref: '#/components/schemas/v1Status'
+        latency_ms:
+          type: integer
+        classes:
+          type: array
+          items:
+            $ref: '#/components/schemas/v1PredictorKlassDetails'
+      required:
+        - predictor_id
+        - predictor_type
+        - status
+        - latency_ms
+        - classes
+    v1LLMPredictorDetails:
+      title: v1LLMPredictorDetails
+      type: object
+      properties:
+        hallucinations:
+          type: array
+          items:
+            type: string
+        tokens_used:
+          type: integer
+        reasoning:
+          type: string
+      required:
+        - hallucinations
+        - tokens_used
+        - reasoning
+      allOf:
+        - $ref: '#/components/schemas/v1PredictorDetails'
+    v1DetailsUnion:
+      title: v1DetailsUnion
+      oneOf:
+        - type: object
+          allOf:
+            - type: object
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - base
+            - $ref: '#/components/schemas/v1PredictorDetails'
+          required:
+            - type
+        - type: object
+          allOf:
+            - type: object
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - llm
+            - $ref: '#/components/schemas/v1LLMPredictorDetails'
+          required:
+            - type
+    v1SelectedClass:
+      title: v1SelectedClass
+      type: object
+      properties:
+        id:
+          type: string
+        latest_version:
+          type: integer
+        latest_name:
+          type: string
+        overall_confidence:
+          type: number
+          format: double
+          description: Some complicated rule
+      required:
+        - id
+        - latest_version
+        - latest_name
+        - overall_confidence
+    v1InternalPredictResponseBase:
+      title: v1InternalPredictResponseBase
+      type: object
+      properties:
+        selected_classes:
+          type: array
+          items:
+            $ref: '#/components/schemas/v1SelectedClass'
+          description: The predicted classes which were selected
+        predictor_details:
+          type: array
+          items:
+            $ref: '#/components/schemas/v1DetailsUnion'
+          description: The sources of the predictions
+      required:
+        - selected_classes
+        - predictor_details
+    v1NormalizerResponse:
+      title: v1NormalizerResponse
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/v1Status'
+        text:
+          type: string
+          nullable: true
+        latency_ms:
+          type: integer
+        tokens_used:
+          type: integer
+          nullable: true
+      required:
+        - status
+        - latency_ms
+    v1InternalPredictResponse:
+      title: v1InternalPredictResponse
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/v1Status'
+        latency_ms:
+          type: integer
+        normalizer:
+          $ref: '#/components/schemas/v1NormalizerResponse'
+          nullable: true
+      required:
+        - status
+        - latency_ms
+      allOf:
+        - $ref: '#/components/schemas/v1InternalPredictResponseBase'
+    v1Configuration:
+      title: v1Configuration
+      type: object
+      properties:
+        id:
+          type: string
+          description: >-
+            The ID of the config to use for the prediction. To use the default,
+            the value should be null or 'default'. To use none, the value should
+            be 'none'.
+        version:
+          type: integer
+          description: >-
+            The version of the config to use for the prediction. To use the
+            latest, the value should be '-1'.
+      required:
+        - id
+        - version
+    v1PredictionRequest:
+      title: v1PredictionRequest
+      type: object
+      properties:
+        llm_target:
+          type: string
+          nullable: true
+          description: >-
+            The associated API key that you registered to use for any LLM calls.
+            Use target 'gloo' to use the trial version.
+        text:
+          type: string
+          description: The text to classify
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: >-
+            The tags to label this input with. This is useful if you have test
+            data that you want to label, or to distinguish between production
+            and test data.
+        configuration:
+          $ref: '#/components/schemas/v1Configuration'
+          nullable: true
+          description: >-
+            Overrides for the prediction. If not provided, the default
+            configuration will be used.
+      required:
+        - text
+    v1PredictionResponse:
+      title: v1PredictionResponse
+      type: object
+      properties:
+        id:
+          type: string
+      required:
+        - id
+      allOf:
+        - $ref: '#/components/schemas/v1InternalPredictResponseBase'
+    v1FeedbackType:
+      title: v1FeedbackType
+      type: string
+      enum:
+        - ATLEAST_ONE_CORRECT
+        - ALL_CORRECT
+        - NONE_CORRECT
+        - UNKNOWN
+    v1ClassificationFeedbackRequest:
+      title: v1ClassificationFeedbackRequest
+      type: object
+      properties:
+        predictionId:
+          type: string
+        type:
+          $ref: '#/components/schemas/v1FeedbackType'
+        expected_classes:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: The classes that were expected for this prediction
+      required:
+        - predictionId
+        - type
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+servers:
+  - url: https://api.trygloo.com
+    description: Production
+  - url: http://localhost:8080
+    description: Localhost

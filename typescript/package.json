@@ -1,0 +1,31 @@
+{
+  "private": true,
+  "prisma": {
+    "schema": "packages/database/prisma/schema.prisma",
+    "seed": "tsx packages/database/src/seed.ts"
+  },
+  "scripts": {
+    "clean": "rm -rf node_modules",
+    "build": "turbo run build",
+    "db:migrate:deploy": "turbo run db:migrate:deploy",
+    "db:push": "turbo run db:push",
+    "db:seed": "turbo run db:seed",
+    "dev": "turbo run dev",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "generate": "turbo run generate",
+    "lint": "turbo run lint",
+    "docker-build": "bash build-docker.sh",
+    "docker-push-prod": "docker push 404337120808.dkr.ecr.us-east-1.amazonaws.com/gloo-service:latest",
+    "docker-deploy-prod": "aws ecs update-service --cluster GlooInfraStack-GlooServiceEcsClusterF56E3FA8-7hHJQXe2yy2w --service GlooInfraStack-GlooServiceECSService98839143-fW4xrLx46P28 --force-new-deployment"
+  },
+  "devDependencies": {
+    "@types/eslint": "^8.37.0",
+    "@typescript-eslint/eslint-plugin": "^5.59.6",
+    "@typescript-eslint/parser": "^5.59.6",
+    "eslint": "^8.40.0",
+    "prettier": "^2.5.1",
+    "rimraf": "^3.0.2",
+    "tsx": "^3.7.1"
+  },
+  "packageManager": "pnpm@8.6.1"
+}

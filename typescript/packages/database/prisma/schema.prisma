@@ -1,0 +1,346 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_MIGRATION")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["jsonProtocol"]
+}
+
+model Classifier {
+  id                   String                   @id
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  orgId                String
+  name                 String
+  defaultConfigId      String?
+  defaultConfigVersion Int?
+  defaultConfig        ClassifierConfigVersion? @relation(name: "defaultConfig", fields: [defaultConfigId, defaultConfigVersion], references: [classifierConfigId, versionId])
+  classifierConfig     ClassifierConfig[]       @relation("configs")
+  klasses              Klass[]
+  normalizers          Normalizer[]
+  predictors           Predictor[]
+  inputTexts           InputText[]
+  normalizedInputTexts NormalizedInputText[]
+  predictions          PredictionRequest[]
+  // hiPredictions        HIPrediction[]
+  TrainedEndpoints     TrainedEndpoints[]
+
+  @@unique([defaultConfigId, defaultConfigVersion])
+  @@map("classifiers")
+}
+
+model ClassifierConfig {
+  id                String                    @id
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  classifierId      String
+  classifier        Classifier                @relation(name: "configs", fields: [classifierId], references: [id])
+  name              String
+  versions          ClassifierConfigVersion[]
+  PredictionRequest PredictionRequest[]
+
+  @@unique([classifierId, name])
+  @@map("classifier_configs")
+}
+
+model ClassifierConfigVersion {
+  defaultClassifier  Classifier?         @relation("defaultConfig")
+  classifierConfigId String
+  versionId          Int
+  createdAt          DateTime            @default(now())
+  classifierConfig   ClassifierConfig    @relation(fields: [classifierConfigId], references: [id])
+  normalizationId    String?
+  normalization      Normalizer?         @relation(fields: [normalizationId], references: [id])
+  ftPredictorId      String?
+  llmPredictorId     String?
+  PredictionRequest  PredictionRequest[]
+
+  @@id([classifierConfigId, versionId])
+  @@map("classifier_config_versions")
+}
+
+model Klass {
+  id           String         @id
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  classifier   Classifier     @relation(fields: [classifierId], references: [id])
+  classifierId String
+  versions     KlassVersion[]
+
+  @@map("klasses")
+}
+
+model KlassVersion {
+  versionId   Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime? @updatedAt
+  name        String
+  description String
+  klass       Klass     @relation(fields: [klassId], references: [id])
+  klassId     String
+
+  @@id([klassId, versionId])
+  @@map("klass_versions")
+}
+
+enum PredictorType {
+  LLM
+  FT
+}
+
+model Predictor {
+  id                  String        @id
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  classifier          Classifier    @relation(fields: [classifierId], references: [id])
+  classifierId        String
+  name                String
+  type                PredictorType
+  // supportedKlasses Schema
+  // { klassId: string, version: { min: int, max: int | undefined } }[]
+  supportedKlasses    Json
+  // blacklistedKlassIds must always be a subset of supportedKlasses.
+  blacklistedKlassIds String[]
+
+  // llmOptions Schema
+  //  {
+  //    "prompt": "This is a test prompt",
+  //    "options": {
+  //      "model": 0.5,
+  //    }
+  //  }
+  llmOptions Json?
+  // ftOptions Schema
+  //  {
+  //    "modelFile": "https://cdn.openai.com/finetuned-models/summarization/summarization-2020-06-01.tar.gz",
+  //  }
+  ftOptions  Json?
+
+  predictions Prediction[]
+
+  @@map("models")
+}
+
+model Normalizer {
+  id                   String                    @id
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  classifier           Classifier                @relation(fields: [classifierId], references: [id])
+  classifierId         String
+  name                 String
+  llmOptions           Json
+  normalizedInputTexts NormalizedInputText[]
+  configurations       ClassifierConfigVersion[]
+
+  @@map("normalizers")
+}
+
+model InputText {
+  id                  String                @id
+  createdAt           DateTime              @default(now()) @unique
+  updatedAt           DateTime              @updatedAt
+  classifier          Classifier            @relation(fields: [classifierId], references: [id])
+  classifierId        String
+  text                String
+  normalizedInputText NormalizedInputText[]
+  predictions         PredictionRequest[]
+  // hiPredictions       HIPrediction[]
+
+  // { tags: string[], apiKeyId: string? }
+  requestMetadata Json
+
+  @@map("data_inputs")
+}
+
+model NormalizedInputText {
+  id           String     @id
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  classifier   Classifier @relation(fields: [classifierId], references: [id])
+  classifierId String
+  inputText    InputText  @relation(fields: [inputTextId], references: [id])
+  inputTextId  String
+  normalizer   Normalizer @relation(fields: [normalizerId], references: [id])
+  normalizerId String
+
+  normalizedText String
+  latencyMs      Int
+
+  // { tags: string[], apiKeyId: string? }
+  requestMetadata Json
+  llmMeta         Json
+
+  predictions   PredictionRequest[]
+  // hiPredictions HIPrediction[]
+
+  @@map("normalized_data_inputs")
+}
+
+enum Status {
+  PASS
+  FAIL
+  FAIL_PARENT
+}
+
+model PredictionRequest {
+  id                        String                  @id
+  createdAt                 DateTime                @default(now()) @unique
+  updatedAt                 DateTime                @updatedAt
+  classifierId              String
+  classifier                Classifier              @relation(fields: [classifierId], references: [id])
+  classifierConfigId        String
+  classifierConfig          ClassifierConfig        @relation(fields: [classifierConfigId], references: [id])
+  classifierConfigVersionId Int
+  classifierConfigVersion   ClassifierConfigVersion @relation(fields: [classifierConfigId, classifierConfigVersionId], references: [classifierConfigId, versionId])
+
+  inputText             InputText            @relation(fields: [inputTextId], references: [id])
+  inputTextId           String
+  normalizedInputText   NormalizedInputText? @relation(fields: [normalizedInputTextId], references: [id])
+  normalizedInputTextId String?
+  status                Status
+  latencyMs             Int
+
+  // requestMetadata Schema
+  // { tags: string[], apiKeyId: string? }
+  requestMetadata Json
+  predictorIds    String[]
+  predictionTypes PredictorType[]
+  predictions     Prediction[]
+  llmTargetName  String?
+
+  @@map("prediction_requests")
+}
+
+model Prediction {
+  id            String               @id
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  requestId     String
+  request       PredictionRequest    @relation(fields: [requestId], references: [id])
+  predictorId   String
+  predictor     Predictor            @relation(fields: [predictorId], references: [id])
+  predictorType PredictorType
+  // feedback      PredictionFeedback[]
+  status        Status
+
+  // prediction Schema
+  // { klassId: string, version: int, score: float | undefined }[]
+  prediction Json
+  latencyMs  Int
+
+  // only set if predictorType is LLM
+  hallucination Json?
+  llmMeta       Json?
+
+  @@map("predictions")
+}
+
+// HumanIntelligence Predictor
+// model HIPredictor {
+//   id            String               @id
+//   clerkId       String?
+//   orgId         String
+//   createdAt     DateTime             @default(now())
+//   updatedAt     DateTime             @updatedAt
+//   name          String
+//   HIPredictions HIPrediction[]
+//   feedback      PredictionFeedback[]
+
+//   @@map("hi_metadata")
+// }
+
+// enum HIPredictionType {
+//   // Display various labels, and ask user to select a few
+//   LABELING
+//   // Display predicted label for a given input, and ask user to confirm
+//   VALIDATION
+// }
+
+// model HIPrediction {
+//   id                    String               @id
+//   createdAt             DateTime             @default(now())
+//   updatedAt             DateTime             @updatedAt
+//   hiPredictorId         String
+//   hiPredictor           HIPredictor          @relation(fields: [hiPredictorId], references: [id])
+//   classifierId          String
+//   classifier            Classifier           @relation(fields: [classifierId], references: [id])
+//   inputTextId           String
+//   inputText             InputText            @relation(fields: [inputTextId], references: [id])
+//   normalizedInputTextId String?
+//   normalizedInputText   NormalizedInputText? @relation(fields: [normalizedInputTextId], references: [id])
+
+//   predictionTypes HIPredictionType[]
+
+//   // Klasses that are displayed in the UI
+//   supportedKlasses Json
+//   // Only set if predictionType is VALIDATION
+//   expectedKlasses  Json?
+
+//   // prediction Schema
+//   // { klassId: string, version: int, score: float | undefined }[]
+//   prediction Json
+//   latencyMs  Int?
+
+//   @@map("human_predictions")
+// }
+
+// enum FeedbackType {
+//   ATLEAST_ONE_MATCH
+//   ALL_MATCH
+//   NONE_MATCH
+//   UNKNOWN
+// }
+
+// model PredictionFeedback {
+//   id        String   @id
+//   createdAt DateTime @unique @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   // Who provided the feedback
+//   hiProviderId String?
+//   hiProvider   HIPredictor? @relation(fields: [hiProviderId], references: [id])
+//   predictorTag String?
+
+//   // What the feedback was provided on (either prediction or hiPrediction)
+//   predictionId String
+//   prediction   Prediction @relation(fields: [predictionId], references: [id])
+
+//   feedback        FeedbackType
+//   // expectedKlasses Schema
+//   // { klassId: string, version: int }[]
+//   expectedKlasses Json?
+
+//   @@map("prediction_feedback")
+// }
+
+model TrainedEndpoints {
+  id               String     @id
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  classifierId     String
+  supportedKlasses Json
+  classifier       Classifier @relation(fields: [classifierId], references: [id])
+}
+
+enum LLMProvider {
+  OpenAI
+  Azure
+}
+
+model LLMEndpoints {
+  orgId        String
+  // the "llmTarget"
+  name         String
+  provider     LLMProvider
+  apiBaseUrl   String
+  apiKey       String
+
+  @@id([orgId, name])
+  @@unique([orgId, name])
+}

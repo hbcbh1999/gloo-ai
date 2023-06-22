@@ -1,0 +1,265 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fern-api/fern/main/fern.schema.json
+
+service:
+  base-path: /v1/classification
+  auth: true
+  display-name: Classification
+  endpoints:
+    predict:
+      audiences:
+        - public
+      method: POST
+      path: "/{classifier_id}/predict"
+      path-parameters:
+        classifier_id: string
+      request: PredictionRequest
+      response: PredictionResponse
+
+    predict_internal:
+      audiences:
+        - internal
+      method: POST
+      path: "/{classifier_id}/internal/predict"
+      path-parameters:
+        classifier_id: string
+      request: InternalPredictRequest
+      response: InternalPredictResponse
+
+    feedback:
+      method: POST
+      path: "/{classifier_id}/feedback"
+      path-parameters:
+        classifier_id: string
+      request: ClassificationFeedbackRequest
+
+    generate_text_internal:
+      audiences:
+        - internal
+      method: POST
+      path: "/{classifier_id}/internal/test_data"
+      path-parameters:
+        classifier_id: string
+      request: InternalGenerateTextRequest
+      response: InternalGenerateTextResponse
+
+types:
+  PredictorType:
+    enum:
+      - FT # FineTuned
+      - LLM # Language Predictor
+
+  FailureMode:
+    enum:
+      - IGNORE
+      - THROW
+
+  InternalGenerateTextRequest:
+    properties:
+      llm_target: string
+      num_samples: integer
+      prompt: string
+
+  InternalGenerateTextResponse:
+    properties:
+      samples: list<string>
+
+  InternalPredictInput:
+    union:
+      text: string
+      input_id: string
+
+  LLMConfig:
+    properties:
+      model_name: string
+
+  NormalizerOverride:
+    properties:
+      failure_mode: FailureMode
+      llm_config: LLMConfig
+      prompt: string
+
+  Normalizer:
+    union:
+      id: string
+      override: NormalizerOverride
+
+  KlassSelection:
+    properties:
+      available: list<Klass>
+      supressed: list<string>
+
+  TraditionalPredictorOptions:
+    properties:
+      endpoint: string
+      failure_mode: FailureMode
+
+  TraditionalPredictorOverride:
+    properties:
+      options: TraditionalPredictorOptions
+      klasses: KlassSelection
+
+  TraditionalPredictor:
+    union:
+      id: string
+      override: TraditionalPredictorOverride
+
+  LLMPredictorOptions:
+    properties:
+      failure_mode: FailureMode
+      llm_config: LLMConfig
+      input_description: string
+      objective: string
+      skip_prior_available_klasses: boolean
+      add_prior_selected_klasses: boolean
+
+  LLMPredictorOverride:
+    properties:
+      options: LLMPredictorOptions
+      klasses: KlassSelection
+
+  LLMPredictor:
+    union:
+      id: string
+      override: LLMPredictorOverride
+
+  Klass:
+    properties:
+      id: string
+      version: integer
+
+  KlassDetails:
+    extends: Klass
+    properties:
+      name: string
+      description: string
+
+  ConfigurationOverride:
+    properties:
+      normalizer: optional<Normalizer>
+      TraditionalPredictor: optional<TraditionalPredictor>
+      llmPredictor: optional<LLMPredictor>
+      klasses: list<KlassDetails>
+
+  InternalPredictRequest:
+    properties:
+      input: InternalPredictInput
+      llm_target: optional<string>
+      configuration: optional<Configuration>
+      override: optional<ConfigurationOverride>
+
+  PredictorKlassDetails:
+    properties:
+      klass_id: string
+      klass_version: integer
+      klass_name: string
+      klass_description: string
+      selected: boolean
+      confidence:
+        type: double
+        docs: The confidence of the prediction (0 - 1).
+
+  Status:
+    enum:
+      - PASS
+      - FAIL
+      - FAIL_PARENT
+
+  PredictorDetails:
+    properties:
+      predictor_id: string
+      predictor_type: PredictorType
+      status: Status
+      latency_ms: integer
+      classes: list<PredictorKlassDetails>
+
+  LLMPredictorDetails:
+    extends: PredictorDetails
+    properties:
+      hallucinations: list<string>
+      tokens_used: integer
+      reasoning: string
+
+  DetailsUnion:
+    union:
+      base: PredictorDetails
+      llm: LLMPredictorDetails
+
+  SelectedClass:
+    properties:
+      id: string
+      latest_version: integer
+      latest_name: string
+      overall_confidence:
+        type: double
+        docs: Some complicated rule
+
+  InternalPredictResponseBase:
+    properties:
+      selected_classes:
+        type: list<SelectedClass>
+        docs: The predicted classes which were selected
+      predictor_details:
+        type: list<DetailsUnion>
+        docs: The sources of the predictions
+
+  NormalizerResponse:
+    properties:
+      status: Status
+      text: optional<string>
+      latency_ms: integer
+      tokens_used: optional<integer>
+
+  InternalPredictResponse:
+    extends: InternalPredictResponseBase
+    properties:
+      status: Status
+      latency_ms: integer
+      normalizer: optional<NormalizerResponse>
+
+  Configuration:
+    properties:
+      id:
+        type: string
+        docs: The ID of the config to use for the prediction.
+          To use the default, the value should be null or 'default'.
+          To use none, the value should be 'none'.
+      version:
+        type: integer
+        docs: The version of the config to use for the prediction.
+          To use the latest, the value should be '-1'.
+
+  PredictionRequest:
+    properties:
+      llm_target:
+        type: optional<string>
+        docs: The associated API key that you registered to use for any LLM calls. Use target 'gloo' to use the trial version.
+      text:
+        type: string
+        docs: The text to classify
+      tags:
+        type: optional<list<string>>
+        docs: The tags to label this input with.
+          This is useful if you have test data that you want to label, or to distinguish between production and test data.
+      configuration:
+        type: optional<Configuration>
+        docs: Overrides for the prediction. If not provided, the default configuration will be used.
+
+  PredictionResponse:
+    extends: InternalPredictResponseBase
+    properties:
+      id: string
+
+  FeedbackType:
+    enum:
+      - ATLEAST_ONE_CORRECT
+      - ALL_CORRECT
+      - NONE_CORRECT
+      - UNKNOWN
+
+  ClassificationFeedbackRequest:
+    properties:
+      predictionId: string
+      type: FeedbackType
+      expected_classes:
+        type: optional<list<string>>
+        docs: The classes that were expected for this prediction

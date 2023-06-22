@@ -1,0 +1,22 @@
+{
+  "name": "config",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "files": [
+    "eslint-preset.js"
+  ],
+  "scripts": {
+    "clean": "rimraf .turbo node_modules dist"
+  },
+  "dependencies": {
+    "eslint-config-next": "^13.4.1",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-config-turbo": "^1.9.3",
+    "eslint-plugin-react": "7.28.0",
+    "next": "^13.4.4"
+  },
+  "devDependencies": {
+    "typescript": "^4.5.3"
+  }
+}

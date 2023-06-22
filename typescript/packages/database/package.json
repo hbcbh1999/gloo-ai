@@ -1,0 +1,46 @@
+{
+  "name": "@gloo/database",
+  "version": "1.0.0",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "build": "npx tsup",
+    "clean": "rimraf .turbo node_modules dist",
+    "db:migrate:prod": "infisical run --env=prod -- prisma migrate deploy",
+    "db:migrate:local": "infisical run --env=test -- prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:seed": "tsx src/seed.ts",
+    "dev": "tsup --watch",
+    "db:format": "prisma format",
+    "db:generate": "prisma generate",
+    "lint": "eslint \"src/**/*.ts\"",
+    "prebuild": "pnpm run db:generate",
+    "predev": "pnpm run db:generate",
+    "studio": "infisical run --env=test -- prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^4.14.1",
+    "chalk": "^5.2.0",
+    "uuid": "^9.0.0",
+    "winston": "^3.9.0",
+    "zod": "^3.21.4"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.12",
+    "@types/uuid": "^9.0.1",
+    "config": "workspace:*",
+    "eslint": "^8.12.0",
+    "prisma": "^4.14.1",
+    "rimraf": "^3.0.2",
+    "supabase": "^1.64.8",
+    "tsconfig": "workspace:*",
+    "tsup": "^5.11.13",
+    "tsx": "^3.7.1",
+    "typescript": "^4.5.5"
+  }
+}

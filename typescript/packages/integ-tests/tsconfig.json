@@ -1,0 +1,12 @@
+{
+  "extends": "tsconfig/node16.json",
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "lib": ["DOM", "DOM.Iterable", "ES2015"],
+    "target": "ES2015",
+    "strict": true,
+    "strictNullChecks": true
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "tsup.config.ts"],
+  "exclude": ["node_modules"]
+}

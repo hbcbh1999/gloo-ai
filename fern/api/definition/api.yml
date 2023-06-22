@@ -1,0 +1,12 @@
+name: api
+headers:
+  X-Gloo-Tag: optional<string>
+  X-Gloo-Org: optional<string>
+display-name: Gloo
+auth: bearer
+environments:
+  Production: https://api.trygloo.com
+  Localhost: http://localhost:8080
+default-environment: Production
+error-discrimination:
+  strategy: status-code

@@ -1,0 +1,78 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fern-api/fern/main/fern.schema.json
+
+imports:
+  error: "error.yml"
+
+service:
+  base-path: /classifiers
+  auth: true
+  endpoints:
+    classify:
+      audiences:
+        - internal
+      method: POST
+      path: "/{classifier_id}/classification"
+      path-parameters:
+        classifier_id: string
+      request: ClassificationRequest
+      response: ClassificationResponse
+      errors:
+        - error.NotAuthorized
+        - error.NotFound
+        - error.BadRequest
+
+types:
+  CreateClassifierRequest:
+    properties:
+      name: string
+
+  ClassifierResponse:
+    properties:
+      classifier_id: string
+      name: string
+
+  ClassificationRequest:
+    union:
+      text: TextInput
+      thread: ThreadInput
+    base-properties:
+      enable_low_latency: optional<boolean>
+      language_hint: optional<string>
+
+  TextInput:
+    properties:
+      text: string
+
+  ThreadInput:
+    properties:
+      topic: optional<string>
+      summary: optional<string>
+      messages: list<Message>
+
+  MessageType:
+    enum:
+      - "USER"
+      - "AGENT"
+
+  Message:
+    properties:
+      type: MessageType
+      text: string
+
+  ClassificationResponse:
+    properties:
+      request_token: string
+      classes: list<string>
+
+  ClassificationFeedbackRequest:
+    properties:
+      request_token: string
+      correctness_status: optional<CorrectnessStatus>
+      expected_classes: optional<list<string>>
+
+  CorrectnessStatus:
+    enum:
+      - ALL
+      - SOME
+      - NONE
+      - SKIP

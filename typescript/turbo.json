@@ -1,0 +1,67 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env.*local"],
+  "globalEnv": ["NODE_ENV"],
+  "pipeline": {
+    "predev": {},
+    "clean": {
+      "dependsOn": ["^clean"],
+      "cache": false
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "@gloo/backend#build": {
+      "dependsOn": ["@gloo/database#build"],
+      "env": ["OPENAI_KEY"],
+      "outputs": ["dist/**"]
+    },
+    "@gloo/database#build": {
+      "dependsOn": ["@gloo/database#db:generate"],
+      "inputs": ["src/*.ts"],
+      "outputs": ["dist/**"]
+    },
+    "@gloo/database#db:generate": {
+      "inputs": ["prisma/schema.prisma"],
+      "cache": false
+    },
+    "@gloo/database#db:push": {
+      "cache": true
+    },
+    "@gloo/client-internal#build": {
+      "dependsOn": ["@gloo/database#build"],
+      "inputs": ["src/*.ts", "src/fern/**/*"],
+      "outputs": ["dist/**"]
+    },
+    "web#build": {
+      "dependsOn": ["@gloo/database#build", "@gloo/client-internal#build"],
+      "env": ["GLOO_AUTH_SECRET", "GLOO_SERVICE_URL"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "@gloo/backend#dev": {
+      "dependsOn": ["@gloo/database#build"],
+      "persistent": true
+    },
+    "web#dev": {
+      "dependsOn": ["@gloo/database#build", "@gloo/client-internal#build"],
+      "persistent": true
+    },
+    "@gloo/backend#dev-local": {
+      "dependsOn": ["@gloo/database#build", "@gloo/client-internal#build"],
+      "persistent": true
+    },
+    "web#dev-local": {
+      "dependsOn": ["@gloo/database#build", "@gloo/client-internal#build"],
+      "persistent": true
+    },
+    "db:format": {},
+    "db:migrate:deploy": {},
+    "db:push": {},
+    "db:seed": {},
+    "dev": {
+      "persistent": true
+    },
+    "lint": {}
+  }
+}
