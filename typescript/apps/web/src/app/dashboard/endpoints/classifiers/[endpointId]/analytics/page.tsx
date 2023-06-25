@@ -5,6 +5,7 @@ import { ClipLoader } from "react-spinners";
 import type { ClassNameValue } from "tailwind-merge/dist/lib/tw-join";
 
 import { percentileFormatter } from "./_components/formatter";
+import { DateSelector } from "./_components/DateSelector";
 
 import type { PredictionCountPlotData } from "@/app/actions/analytics";
 import {
@@ -48,10 +49,16 @@ async function _LatencyChart({ endpointId }: { endpointId: string }) {
   );
 }
 
-async function HallucinationChart({ endpointId }: { endpointId: string }) {
+async function HallucinationChart({
+  endpointId,
+  dateRange,
+}: {
+  endpointId: string;
+  dateRange: string;
+}) {
   const { hallucinations, configNames } = await hallucinationData(
     endpointId,
-    "P7D"
+    dateRange
   );
 
   return (
@@ -75,8 +82,14 @@ async function HallucinationChart({ endpointId }: { endpointId: string }) {
   );
 }
 
-async function HallucinationTable({ endpointId }: { endpointId: string }) {
-  const hallucinationList = await hallucinationListData(endpointId, "P7D");
+async function HallucinationTable({
+  endpointId,
+  dateRange,
+}: {
+  endpointId: string;
+  dateRange: string;
+}) {
+  const hallucinationList = await hallucinationListData(endpointId, dateRange);
 
   return (
     <>
@@ -104,7 +117,12 @@ async function HallucinationTable({ endpointId }: { endpointId: string }) {
   );
 }
 
-async function ClassAlignment({ endpointId }: { endpointId: string }) {
+async function ClassAlignment({
+  endpointId,
+}: {
+  endpointId: string;
+  dateRange: string;
+}) {
   const alignment = await predictionAlignmentData(endpointId, "P1D");
 
   if (alignment.size === 0) {
@@ -144,7 +162,12 @@ async function ClassAlignment({ endpointId }: { endpointId: string }) {
   );
 }
 
-async function ClassFrequency({ endpointId }: { endpointId: string }) {
+async function ClassFrequency({
+  endpointId,
+}: {
+  endpointId: string;
+  dateRange: string;
+}) {
   const data = await predictionKlassData(endpointId, "P3D");
 
   if (data.length === 0) {
@@ -381,17 +404,24 @@ const OverviewCards = async ({
 
 export default function Analytics({
   params: { endpointId },
+  searchParams,
 }: {
+  searchParams?: { [key: string]: string };
   params: { endpointId: string };
 }) {
-  const usagePromise = usageCharts(endpointId, "P7D");
+  const dateRangeInt = parseInt(searchParams?.range ?? "7");
+  const dateRange = `P${dateRangeInt}D`;
+  const usagePromise = usageCharts(endpointId, dateRange);
 
   return (
     <ScrollArea
       className="w-full flex flex-col bg-muted/20 px-6 h-[95%]"
       type="auto"
     >
-      <h1 className="font-semibold text-2xl py-4">Analytics (7 days)</h1>
+      <div className="flex flex-row gap-1 items-center">
+        <h1 className="font-semibold text-2xl py-4">Analytics</h1>
+        <DateSelector />
+      </div>
       <div className="flex w-full h-fit">
         <div className="font-semibold text-xl">Overview</div>
         <div className="flex flex-wrap items-center justify-center w-full h-full p-4 gap-5">
@@ -413,10 +443,10 @@ export default function Analytics({
           <LatencyChart endpointId={endpointId} />
         </DashboardCard> */}
         <DashboardCard>
-          <HallucinationChart endpointId={endpointId} />
+          <HallucinationChart endpointId={endpointId} dateRange={dateRange} />
         </DashboardCard>
         <DashboardCard classNames="h-[300px]">
-          <HallucinationTable endpointId={endpointId} />
+          <HallucinationTable endpointId={endpointId} dateRange={dateRange} />
         </DashboardCard>
         <Suspense
           fallback={
@@ -425,7 +455,7 @@ export default function Analytics({
             </div>
           }
         >
-          <ClassAlignment endpointId={endpointId} />
+          <ClassAlignment endpointId={endpointId} dateRange={dateRange} />
         </Suspense>
         <Suspense
           fallback={
@@ -434,7 +464,7 @@ export default function Analytics({
             </div>
           }
         >
-          <ClassFrequency endpointId={endpointId} />
+          <ClassFrequency endpointId={endpointId} dateRange={dateRange} />
         </Suspense>
       </div>
     </ScrollArea>
