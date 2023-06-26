@@ -3,8 +3,6 @@ import type { User } from "@clerk/nextjs/api";
 import { Webhook } from "svix";
 import { headers } from "next/headers";
 
-import logger from "@/app/actions/logger";
-
 type UnwantedKeys =
   | "emailAddresses"
   | "firstName"
